@@ -1,0 +1,12 @@
+# Ignorar todo
+*
+
+# No ignorar los archivos específicos
+!hm.g4
+!hm.py
+!README.md
+!.gitignore
+
+# No ignorar los directorios para que git pueda acceder a los archivos específicos dentro de ellos
+!*/
+
