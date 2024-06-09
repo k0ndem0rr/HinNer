@@ -33,7 +33,45 @@ Para ejecutar esta aplicación localmente, sigue estos pasos:
    source venv/bin/activate  # En Windows: venv\Scripts\activate
    ```
 
-3. Prueba a compilar
+3. Prueba a compilar y usar
+   ```bash
+   antlr4 -Dlanguage=Python3 -no-listener -visitor hm.g4
+   streamlit run hm.py
    ```
+
+4. Instala lo que te haga falta
+
+## Uso
+
+Una vez funcione el comando ```streamlit run hm.py```, se abrirá automáticamente tu navegador en la web indicada (usualmente `http://localhost:8501`).
+
+## Interacción con la App
+
+1. Introduce el texto que deseas analizar en el área de texto proporcionada.
+2. Haz clic en el botón "Run" para procesar el texto.
+3. La aplicación mostrará las definiciones y el árbol de sintaxis generado. O los errores de tipo o de sintaxi si es que hay
+
+Prueba por ejemplo con
+```hm.g4
 (-)::N->N->N
 \x->((-)((\y->(-)y)3(5)))(((-)x)((-)2(4)))
+```
+
+## Estructura del proyecto
+
+- `hm.py`: El archivo princpal que contiene la app de Streamlit y las funciones de análisis y visualización.
+- `hm.g4`: La definición de la gramática en ANTLR
+
+## Contribuciones
+
+¡Las contribuciones son bienvenidas! Si deseas contribuir, por favor sigue estos pasos:
+
+1. Haz un fork del proyecto.
+2. Crea una rama con tu nueva característica (`git checkout -b feature/nueva-caracteristica`).
+3. Realiza tus cambios y haz commits (`git commit -am 'Añadir nueva característica'`).
+4. Sube los cambios a tu repositorio (`git push origin feature/nueva-caracteristica`).
+5. Crea un Pull Request.
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia MIT.
