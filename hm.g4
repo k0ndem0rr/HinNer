@@ -1,11 +1,11 @@
 grammar hm;
 
 root:
-    line+
+    (line '\n'+)* line '\n'*
     ;
 
 line:
-    (application | lambda | def) '\n'*
+    (application | lambda | def)
     ;
 
 def:
@@ -18,7 +18,7 @@ type:
     ;
 
 application:
-    application expr        #app
+    application application        #app
     | '(' application ')'   #appParens
     | expr                  #appExpr
     ;

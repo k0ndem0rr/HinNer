@@ -7,45 +7,6 @@ from dataclasses import dataclass
 from graphviz import Digraph
 import pandas as pd
 
-# grammar hm;
-
-# root: line+;
-
-# line: (application | lambda | def) '\n'*
-# ;
-
-# def:
-#     application '::' type
-#     ;
-
-# type:
-#     MAYUS                   #typeLast
-#     | MAYUS '->' type       #typeMiddle
-#     ;
-
-# application:
-#     application expr        #app
-#     | '(' application ')'   #appParens
-#     | expr                  #appExpr
-#     ;
-
-# expr:
-#     NUMBER                  #numberExpr
-#     | VARIABLE              #variableExpr
-#     | lambda                #lambdaExpr
-#     | OPERATION             #operationExpr
-#     ;
-
-# lambda:
-#     '\\' VARIABLE '->' application
-#     ;
-
-# VARIABLE: [a-z]+ ;
-# OPERATION: '(' ('+' | '-' | '*' | '/' | '^') ')';
-# NUMBER: [0-9]+ ;
-# MAYUS : [A-Z]+ ;
-# WS : [ \t\r]+ -> skip;
-
 
 @dataclass
 class TreeNode:
@@ -89,7 +50,7 @@ def splitType(type: str):
     type_list = list(type)
     entryType = ""
 
-    # Empezar desde el principio de la cadena
+    # Guardo la variable de entrada y borro lo que sobra
     for i in range(len(type_list)):
         if type_list[0] == '-':
             break
@@ -108,22 +69,36 @@ def splitType(type: str):
 
 def defineType(self, var, isLambda=False):
     type = None
+
+    # Si hay definiciones previas, buscar el tipo de la variable
     if self.definitions:
         for name, t in self.definitions:
+
+            # Si la variable ya tiene un tipo, lo cogemos
             if name == var.getText():
                 type = t
+
+                # Si el tipo no coincide con el esperado, hay un error
                 if self.entryType != "" and type != self.entryType:
                     self.errorMsg = f"Error: {var.getText()}"
                     self.errorMsg += f" no es de tipo {self.entryType},"
                     self.errorMsg += f" es de tipo {type}"
                     self.appType = ""
                 break
+
     if type is None:
-        if self.appType != '':
+
+        # Si no hay definicion pero sí valor esperado,
+        # entonces el tipo de la variable es el esperado.
+        # En el caso de las lambdas, la entrada más la salida
+        if self.entryType != '':
             if isLambda:
                 type = f'({self.entryType} -> {self.appType})'
             else:
-                type = self.appType
+                type = self.entryType
+
+        # Si no hay definición ni valor esperado,
+        # entonces el tipo de la variable es asignado sistemáticamente
         else:
             type = nextType(self.lastRandomType)
             self.lastRandomType = type
@@ -170,6 +145,12 @@ class TreeVisitor(hmVisitor):
         type = nextType(self.lastRandomType)
         self.lastRandomType = self.lastRandomType
 
+        possibleType = ''
+
+        if self.entryType != '':
+            possibleType = self.entryType
+            self.entryType = ''
+
         # Visito la expresión
         expr = self.visit(expr)
 
@@ -184,20 +165,29 @@ class TreeVisitor(hmVisitor):
         self.entryType = entryType
         self.appType = appType
 
+        # El valor que deberia tener la aplicación
+        type = appType
+
         # Visito la aplicación
         app = self.visit(app)
 
         # Si la aplicación no ha coincidido con la entrada,
-        # entonces hay un error
+        # entonces hay un error y el tipo de la aplicación
+        # ya no es válido
         if self.appType == '':
             self.entryType = ''
-        # Si la aplicación coincide con la entrada, ya tenemos tipo
-        else:
-            type = self.appType
+            type = ''
 
         self.definitions.append((f'{ctx.getText()}', type))
 
-        return TreeNode(name='@', children=[expr, app], type=type)
+        if possibleType != '' and possibleType != type:
+            self.errorMsg += f"\n Error: "
+            self.errorMsg += ctx.getText() + f" no es de tipo {possibleType},"
+            self.errorMsg += f" es de tipo {type}"
+
+        return TreeNode(name=ctx.getText() if printAbstracts else '@',
+                        children=[expr, app],
+                        type=type)
 
     def visitAppParens(self, ctx: hmParser.AppParensContext):
         [_, app, _] = list(ctx.getChildren())
@@ -234,7 +224,7 @@ class TreeVisitor(hmVisitor):
         variable = TreeNode(name=variable.getText(),
                             children=[],
                             type=defineType(self, variable))
-        return TreeNode(name='λ',
+        return TreeNode(name='λ' if not printAbstracts else ctx.getText(),
                         children=[variable, application],
                         type=lambdaType)
 
@@ -276,6 +266,8 @@ def render_tree(node, dot=None, parent=None):
 st.title("Konde's HinNer type analyzer")
 
 input_text = st.text_area('Input')
+
+printAbstracts = st.checkbox('Show Lambdas and applications texts')
 
 if st.button('Run'):
     if input_text:
